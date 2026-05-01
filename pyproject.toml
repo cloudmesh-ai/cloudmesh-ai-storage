@@ -22,6 +22,9 @@ version = {file = "VERSION"}
 [project.entry-points."cloudmesh.ai.command"]
 storage = "command.storage:register"
 
+[project.entry-points."cloudmesh.ai.panel.app"]
+storage = "cloudmesh.ai.command.storage_view:get_panel_metadata"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["command*"]

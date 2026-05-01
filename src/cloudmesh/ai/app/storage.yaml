@@ -1,0 +1,6 @@
+cloudmesh:
+  ai:
+    app:
+      - name: Storage View
+        image: mdi-database
+        position: main window in side navigation

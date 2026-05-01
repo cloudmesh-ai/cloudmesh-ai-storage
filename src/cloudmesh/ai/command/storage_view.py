@@ -21,6 +21,20 @@ class StorageViewHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/html")
             self.end_headers()
             self.wfile.write(html_content.encode("utf-8"))
+        elif url.path == "/storage_table_config.js":
+            try:
+                # Path relative to this file
+                file_path = Path(__file__).parent / "storage_table_config.js"
+                if file_path.exists():
+                    self.send_response(200)
+                    self.send_header("Content-type", "application/javascript")
+                    self.end_headers()
+                    with open(file_path, "rb") as f:
+                        self.wfile.write(f.read())
+                    return
+            except Exception:
+                pass
+            self.send_error(404)
         elif url.path == "/open-terminal":
             query = urllib.parse.parse_qs(url.query)
             path = query.get("path", [None])[0]
@@ -61,6 +75,28 @@ class StorageViewHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(b"Missing path or dirname parameter")
         else:
             super().do_GET()
+
+def get_panel_metadata():
+    """
+    Returns metadata for the AI Panel discovery by reading the metadata.yaml file.
+    """
+    try:
+        # Path to the metadata file relative to this file
+        # This file is in src/cloudmesh/ai/command/storage_view.py
+        # Metadata is in src/cloudmesh/ai/app/storage.yaml
+        metadata_path = Path(__file__).parent.parent / "app" / "storage.yaml"
+        if metadata_path.exists():
+            with open(metadata_path, "r") as f:
+                data = yaml.safe_load(f)
+                app_info = data.get("cloudmesh", {}).get("ai", {}).get("app", [{}])[0]
+                return {
+                    "name": app_info.get("name", "Storage View"),
+                    "icon": app_info.get("image", "mdi-database")
+                }
+    except Exception as e:
+        print(f"Error reading storage metadata: {e}")
+    
+    return {"name": "Storage View", "icon": "mdi-database"}
 
 class StorageInfoView:
     """
