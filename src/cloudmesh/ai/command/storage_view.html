@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudmesh Storage Info View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; color: #24292f; margin: 0; padding: 0; height: 100vh; box-sizing: border-box; overflow: hidden; }
+        .container { width: 100%; height: 100vh; padding: 20px; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
+        h1 { font-size: 24px; font-weight: 600; margin: 0; }
+        #search { padding: 8px 12px; width: 300px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 14px; }
+        #content { flex: 1; overflow: hidden; }
+        
+        .tabulator { border: 1px solid #d0d7de; border-radius: 6px; background: white; }
+        .tabulator-header { background-color: #f6f8fa !important; font-weight: 600 !important; }
+        .tabulator-row { background-color: white; }
+        .tabulator-row:hover { background-color: #fcfcfc !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cloudmesh Storage Info View</h1>
+            <input type="text" id="search" placeholder="Search paths..." onkeyup="filterRepos()">
+        </header>
+        <div id="content">
+            <div id="storage-table"></div>
+        </div>
+    </div>
+
+    <script>
+        const data = {{DATA_JSON}};
+        let table;
+
+        function formatSize(s) {
+            if (s === null || s === undefined || s < 0) return 'N/A';
+            if (s > 1024 * 1024 * 1024) return (s / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            if (s > 1024 * 1024) return (s / (1024 * 1024)).toFixed(2) + ' MB';
+            if (s > 1024) return (s / 1024).toFixed(2) + ' KB';
+            return s + ' B';
+        }
+
+        function render() {
+            table = new Tabulator("#storage-table", {
+                data: data,
+                layout: "fitColumns",
+                height: "100%",
+                groupBy: "group",
+                groupHeader: function(value, count, data, group) {
+                    return `<span style="color: #0969da; font-weight: 600; font-size: 16px;">${value} (${count} directories)</span>`;
+                },
+                columns: [
+                    { 
+                        title: "Action", 
+                        field: "path", 
+                        width: 120, 
+                        hozAlign: "center", 
+                        formatter: function(cell) {
+                            const path = cell.getValue();
+                            const dirname = cell.getData().dirname;
+                            return `<div style="display: flex; gap: 10px; justify-content: center;">
+                                <a href="#" onclick="openFolder('${path}')" style="color: #0969da; text-decoration: none;" title="Open in Terminal">
+                                    <i class="fas fa-folder-open"></i>
+                                </a>
+                                <a href="#" onclick="deleteFolder('${path}', '${dirname}')" style="color: #cf222e; text-decoration: none;" title="Delete Directory">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>`;
+                        }
+                    },
+                    { title: "Dirname", field: "dirname", width: 150 },
+                    { title: "Path", field: "path", formatter: function(cell) {
+                        return `<span style="font-family: monospace; font-size: 12px;">${cell.getValue()}</span>`;
+                    }},
+                    { title: "Size", field: "size", width: 200, hozAlign: "right", formatter: (cell) => formatSize(cell.getValue()) },
+                    { title: "Files", field: "files", width: 150, hozAlign: "right" },
+                    { title: "Dirs", field: "dirs", width: 150, hozAlign: "right" },
+                ],
+            });
+        }
+
+        function filterRepos() {
+            const query = document.getElementById('search').value.toLowerCase();
+            table.clearFilter();
+            if (query) {
+                table.addFilter("path", "like", query);
+            }
+        }
+
+        async function openFolder(path) {
+            try {
+                const response = await fetch(`/open-terminal?path=${encodeURIComponent(path)}`);
+                if (response.ok) {
+                    console.log("Terminal opened successfully");
+                } else {
+                    alert("Failed to open terminal. Make sure the local server is running.");
+                }
+            } catch (e) {
+                console.error("Error opening terminal:", e);
+                alert("Error connecting to local server to open terminal.");
+            }
+        }
+
+        async function deleteFolder(path, dirname) {
+            if (confirm(`Would you like to delete this dir with the name ${dirname}?`)) {
+                try {
+                    const response = await fetch(`/delete-folder?path=${encodeURIComponent(path)}&dirname=${encodeURIComponent(dirname)}`);
+                    if (response.ok) {
+                        console.log("Delete request sent successfully");
+                    } else {
+                        alert("Failed to send delete request.");
+                    }
+                } catch (e) {
+                    console.error("Error sending delete request:", e);
+                    alert("Error connecting to local server.");
+                }
+            }
+        }
+
+        render();
+    </script>
+</body>
+</html>
