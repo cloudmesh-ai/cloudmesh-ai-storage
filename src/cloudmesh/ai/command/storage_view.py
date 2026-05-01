@@ -35,6 +35,19 @@ class StorageViewHandler(http.server.SimpleHTTPRequestHandler):
             except Exception:
                 pass
             self.send_error(404)
+        elif url.path == "/storage_table_styles.css":
+            try:
+                file_path = Path(__file__).parent / "storage_table_styles.css"
+                if file_path.exists():
+                    self.send_response(200)
+                    self.send_header("Content-type", "text/css")
+                    self.end_headers()
+                    with open(file_path, "rb") as f:
+                        self.wfile.write(f.read())
+                    return
+            except Exception:
+                pass
+            self.send_error(404)
         elif url.path == "/open-terminal":
             query = urllib.parse.parse_qs(url.query)
             path = query.get("path", [None])[0]

@@ -1,0 +1,25 @@
+:root {
+    --tabulator-bg: #ffffff;
+    --tabulator-header-bg: #f6f8fa;
+    --tabulator-border: #d0d7de;
+    --tabulator-row-hover: #fcfcfc;
+    --tabulator-text: #24292f;
+}
+
+.dark {
+    --tabulator-bg: #1f2937;
+    --tabulator-header-bg: #111827;
+    --tabulator-border: #374151;
+    --tabulator-row-hover: #2d3748;
+    --tabulator-text: #f3f4f6;
+}
+
+/* Tabulator Customization */
+.tabulator { border: 1px solid var(--tabulator-border) !important; border-radius: 6px; background: var(--tabulator-bg) !important; color: var(--tabulator-text) !important; }
+.tabulator-header { background-color: var(--tabulator-header-bg) !important; font-weight: 600 !important; color: var(--tabulator-text) !important; border-bottom: 1px solid var(--tabulator-border) !important; }
+.tabulator-header .tabulator-col { background-color: var(--tabulator-header-bg) !important; color: var(--tabulator-text) !important; border-right: 1px solid var(--tabulator-border) !important; }
+
+.tabulator-row { background-color: var(--tabulator-bg) !important; color: var(--tabulator-text) !important; }
+.tabulator-row .tabulator-cell { background-color: var(--tabulator-bg) !important; color: var(--tabulator-text) !important; border-right: 1px solid var(--tabulator-border) !important; border-bottom: 1px solid var(--tabulator-border) !important; }
+.tabulator-row:hover { background-color: var(--tabulator-row-hover) !important; }
+.tabulator-row:hover .tabulator-cell { background-color: var(--tabulator-row-hover) !important; }

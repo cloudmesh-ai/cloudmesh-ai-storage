@@ -45,6 +45,44 @@ def equiv_cmd(root_dir):
             on_match_found=on_match
         )
 
+    # Print summary table of results
+    try:
+        import yaml
+        config_path = Path.home() / ".config" / "cloudmesh" / "storage" / "equivalencies.yaml"
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                data = yaml.safe_load(f)
+                candidates = data.get("candidates", {}) if isinstance(data, dict) else {}
+                
+                if candidates:
+                    console.banner("Equivalent Directories Summary")
+                    
+                    # Group by metrics to show equivalencies
+                    metrics_map = {}
+                    for dirname, paths_meta in candidates.items():
+                        if not isinstance(paths_meta, dict): continue
+                        for path, meta in paths_meta.items():
+                            if not isinstance(meta, dict): continue
+                            metrics = (meta.get("size", 0), meta.get("files", 0), meta.get("dirs", 0))
+                            if metrics not in metrics_map:
+                                metrics_map[metrics] = []
+                            metrics_map[metrics].append((dirname, path, meta))
+                    
+                    for i, (metrics, members) in enumerate(metrics_map.items(), 1):
+                        if len(members) < 2: continue # Only show actual equivalencies
+                        
+                        size, files, dirs = metrics
+                        table = Table(title=f"Group {i} ({humanize.naturalsize(size)}, {files} files, {dirs} dirs)")
+                        table.add_column("Dirname", style="cyan")
+                        table.add_column("Path", style="magenta")
+                        table.add_column("Size", style="green")
+                        
+                        for dirname, path, meta in members:
+                            table.add_row(dirname, path, humanize.naturalsize(meta.get("size", 0)))
+                        console.print(table)
+                        console.print()
+    except Exception as e:
+        console.print(f"[red]Could not print summary table: {e}[/red]")
 
     console.ok("Search complete. Results saved to ~/.config/cloudmesh/storage/equivalencies.yaml")
 
