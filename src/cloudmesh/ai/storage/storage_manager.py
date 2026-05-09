@@ -3,7 +3,8 @@ import hashlib
 import yaml
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Tuple, Callable, Optional
+from typing import Dict, List, Tuple, Callable, Optional, Any
+from concurrent.futures import ThreadPoolExecutor
 from cloudmesh.ai.common.io import console
 
 class StorageManager:
@@ -14,11 +15,24 @@ class StorageManager:
     def __init__(self):
         self.config_dir = Path.home() / ".config" / "cloudmesh" / "storage"
         self.storage_file = self.config_dir / "equivalencies.yaml"
+        self.exclusions = {".git", "node_modules", "__pycache__", ".DS_Store", ".svn", ".hg"}
 
-    def get_file_hash(self, path: Path) -> str:
-        """Computes the SHA256 hash of a file."""
-        hasher = hashlib.sha256()
+    def get_file_hash(self, path: Path, fast: bool = False) -> str:
+        """
+        Computes the SHA256 hash of a file.
+        If fast=True, only hashes the first 4KB and the file size.
+        """
         try:
+            size = path.stat().st_size
+            if fast:
+                hasher = hashlib.sha256()
+                hasher.update(str(size).encode())
+                with open(path, "rb") as f:
+                    chunk = f.read(4096)
+                    hasher.update(chunk)
+                return hasher.hexdigest()
+
+            hasher = hashlib.sha256()
             with open(path, "rb") as f:
                 while chunk := f.read(8192):
                     hasher.update(chunk)
@@ -30,14 +44,31 @@ class StorageManager:
         """
         Computes a signature for a directory based on its contents.
         The signature is a sorted tuple of (name, type, hash/signature).
-        This ensures that directories are only equivalent if they have the 
-        exact same set of files and subdirectories with identical content.
+        Uses a ThreadPoolExecutor to hash files in parallel.
         """
-        entries = []
         try:
-            for item in sorted(path.iterdir()):
+            items = sorted(path.iterdir(), key=lambda x: x.name)
+            
+            # Separate files and directories
+            files = [item for item in items if item.is_file() and item.name not in self.exclusions]
+            dirs = [item for item in items if item.is_dir() and item.name not in self.exclusions]
+            
+            # Hash files in parallel
+            file_hashes = {}
+            if files:
+                with ThreadPoolExecutor() as executor:
+                    # Use fast hash first for efficiency
+                    future_to_file = {executor.submit(self.get_file_hash, f, fast=True): f for f in files}
+                    for future in future_to_file:
+                        f = future_to_file[future]
+                        file_hashes[f.name] = future.result()
+
+            entries = []
+            for item in items:
+                if item.name in self.exclusions:
+                    continue
                 if item.is_file():
-                    entries.append((item.name, "file", self.get_file_hash(item)))
+                    entries.append((item.name, "file", file_hashes.get(item.name, "error")))
                 elif item.is_dir():
                     # For directories, we use their own signature recursively
                     entries.append((item.name, "dir", self.get_dir_signature(item)))
@@ -169,9 +200,9 @@ class StorageManager:
             return matches
 
     def find_equivalent_directories(self, root_dir: Path, 
-                                   on_scan_progress: Optional[Callable[[int], None]] = None,
-                                   on_compare_progress: Optional[Callable[[int], None]] = None,
-                                   on_match_found: Optional[Callable[[str, List[str]], None]] = None):
+                                    on_scan_progress: Optional[Callable[[int], None]] = None,
+                                    on_compare_progress: Optional[Callable[[int], None]] = None,
+                                    on_match_found: Optional[Callable[[str, List[str]], None]] = None):
         """
         Main logic to find equivalent directories.
         """
@@ -179,6 +210,9 @@ class StorageManager:
         name_map: Dict[str, List[Path]] = {}
         
         for dirpath, dirnames, filenames in os.walk(root_dir):
+            # Modify dirnames in-place to skip excluded directories
+            dirnames[:] = [d for d in dirnames if d not in self.exclusions]
+            
             path = Path(dirpath)
             name = path.name
             if name not in name_map:
