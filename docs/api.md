@@ -4,4 +4,4 @@ This page provides the API reference for the `cloudmesh-ai-storage` library.
 
 ## API Documentation
 
-::: cloudmesh.ai.app
+::: cloudmesh.ai.command.storage
