@@ -24,6 +24,7 @@ dependencies = [
     "pytest",
     "cloudmesh-ai-common",
     "humanize",
+    "cloudmesh-ai-theme",
 ]
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
