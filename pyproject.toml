@@ -7,6 +7,7 @@ name = "cloudmesh-ai-storage"
 
 dynamic = ["version"]
 description = "Extension storage created by CME"
+requires-python = ">=3.12"
 license = "Apache-2.0"
 urls = { "Homepage" = "https://github.com/cloudmesh-ai/cloudmesh-ai-storage" }
 classifiers = [
@@ -22,9 +23,7 @@ dependencies = [
     "click",
     "rich",
     "pytest",
-    "cloudmesh-ai-common",
     "humanize",
-    "cloudmesh-ai-theme",
 ]
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
